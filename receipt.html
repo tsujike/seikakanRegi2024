@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>領収書</title>
+<style>
+  /* 印刷用ページ設定: 幅5cm, 長さは内容依存 */
+  @page {
+    size: 5cm auto;
+    margin: 0; /* ページ余白を0にし、body側で調整 */
+  }
+
+  body {
+    font-family: monospace;
+    width: 4cm;         /* 本文幅4cm */
+    margin: 0.5cm auto; /* 左右0.5cm余白を確保(合計5cm幅) */
+    font-size: 12px;    /* 小さめフォントでレシート風 */
+  }
+
+  .header, .footer {
+    text-align: center;
+    margin: 5px 0;
+  }
+
+  .line {
+    border-bottom: 1px dashed #000;
+    margin: 5px 0;
+  }
+
+  .items {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 5px;
+  }
+
+  .items th, .items td {
+    text-align: left;
+    padding: 2px;
+    font-size: 12px;
+    white-space: normal; /* 折り返し有効 */
+  }
+
+  .total {
+    font-weight: bold;
+    margin-top: 5px;
+  }
+
+  .info {
+    margin-top: 5px;
+  }
+
+  .store-info {
+    margin-top: 3px;
+    font-size: 10px;
+    text-align: center;
+    line-height: 1.2em;
+  }
+
+  .footer {
+    margin-top: 10px;
+    font-size: 10px;
+    text-align: center;
+    line-height: 1.2em;
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <img src="https://tg-global.asia/_img/sskan_mono_receipt.png" alt="店舗ロゴ" style="max-width:3cm;">
+    <div class="store-info">
+      旬（マル）旬北海道 さっぽろ青果館<br>
+      〒060-0012 札幌市中央区北12条西23丁目2₋7<br>
+      TEL:011-299-2308<br>
+      営業時間: 5：00～15：00（日・祝日を除く）<br>
+      登録番号:T4430001065672
+    </div>
+    <div class="line"></div>
+  </div>
+  <div id="details"></div>
+  <div class="footer">
+    <div class="line"></div>
+    <p>ご利用ありがとうございました</p>
+    <div class="store-info">
+      旬（マル）旬北海道 さっぽろ青果館<br>
+      〒060-0012 札幌市中央区北12条西23丁目2₋7<br>
+      TEL:011-299-2308<br>
+      営業時間: 5：00～15：00（日・祝日を除く）<br>
+      登録番号:T4430001065672
+      <br><br>
+      「●」印は軽減税率適用商品です。<br><br>
+      公式LINEアカウント:@shokkaido<br>
+      お友達追加でお得な情報をGET♪
+    </div>
+  </div>
+  <script>
+    const transactionData = JSON.parse(localStorage.getItem('transactionData') || '{}');
+    const detailsDiv = document.getElementById('details');
+    const products = transactionData.products || [];
+
+    let rawTotal = transactionData.total || 0; 
+    let rawPayment = (transactionData.payment !== undefined) ? transactionData.payment : rawTotal;
+    let rawChange = (transactionData.change !== undefined) ? transactionData.change : (rawPayment - rawTotal);
+
+    const staff = transactionData.staff || '';
+    const memo = transactionData.memo || '';
+
+    function formatNumber(num) {
+      return Number(num).toLocaleString('ja-JP');
+    }
+
+    let totalReducedAmount = 0;  // 軽減税率対象商品の合計
+    let totalNormalAmount = 0;   // 通常税率商品の合計
+
+    // 「軽」列を追加
+    let html = '<table class="items">';
+    html += '<thead><tr><th>商品名</th><th>数量</th><th>軽</th><th>金額</th></tr></thead><tbody>';
+
+    products.forEach(p => {
+      const amountFormatted = formatNumber(p.amount);
+      const reducedMark = p.reducedTax ? "●" : "";
+      html += `<tr><td>${p.productName}</td><td>${p.qty}</td><td>${reducedMark}</td><td>${amountFormatted}円</td></tr>`;
+
+      if (p.reducedTax) {
+        totalReducedAmount += p.amount;
+      } else {
+        totalNormalAmount += p.amount;
+      }
+    });
+    html += '</tbody></table>';
+
+    const normalTax = Math.floor(totalNormalAmount * 10 / 110);
+    const reducedTaxValue = Math.floor(totalReducedAmount * 8 / 108);
+
+    html += `<div class="total">合計：${formatNumber(rawTotal)}円</div>`;
+    html += `<div class="info">10％の消費税：${formatNumber(normalTax)}円</div>`;
+    html += `<div class="info">8％の消費税：${formatNumber(reducedTaxValue)}円</div>`;
+
+    // お預かり金額・お釣りをテキストで表示するのみ
+    html += `<div class="info">お預かり：${formatNumber(rawPayment)}円 / お釣り：${formatNumber(rawChange)}円</div>`;
+
+    html += `<div class="info">担当者：${staff}</div>`;
+    if (memo) {
+      html += `<div class="info">メモ：${memo}</div>`;
+    }
+
+    detailsDiv.innerHTML = html;
+  </script>
+</body>
+</html>
