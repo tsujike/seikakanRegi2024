@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <title>レジプロトタイプ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    body {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.8em;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .header-logo-container {
+      margin: 20px 0;
+    }
+
+    .header-logo-container img {
+      max-width: 80%;
+      height: auto;
+      border-radius: 8px;
+    }
+
+    /* ボタンを倍のサイズに */
+    button {
+      font-size: 2.4em;
+      padding: 20px 40px;
+      margin: 20px 10px;
+      background: #007aff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      min-width: 200px;
+    }
+
+    button:hover {
+      background: #005bb5;
+    }
+
+    button:active {
+      background: #003f87;
+    }
+
+    #product-list,
+    #selected-product-list {
+      margin-top: 20px;
+      border-collapse: collapse;
+      width: 100%;
+      background: #fff;
+      margin: 0 auto;
+      table-layout: fixed;
+    }
+
+    #product-list th,
+    #product-list td,
+    #selected-product-list th,
+    #selected-product-list td {
+      border: 1px solid #ccc;
+      padding: 12px;
+      font-size: 1.1em;
+      text-align: left;
+    }
+
+    /* 列構成:
+     product-list / selected-product-list: 
+     0: 選択
+     1: 商品ID
+     2: 商品名
+     3: 税込価格
+     4: 軽
+     5: 数量
+     6: 金額
+  */
+
+    /* 数量列(5), 金額列(6)固定幅 */
+    #product-list th:nth-child(6),
+    #selected-product-list th:nth-child(6) {
+      width: 60px;
+      text-align: center;
+    }
+
+    #product-list td:nth-child(6),
+    #selected-product-list td:nth-child(6) {
+      width: 60px;
+      text-align: center;
+    }
+
+    #total {
+      margin-top: 20px;
+      font-weight: bold;
+      font-size: 2em;
+      color: #333;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .section {
+      margin-top: 20px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: left;
+    }
+
+    .navigation-area {
+      margin-top: 20px;
+      text-align: left;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>旬（マル）旬北海道POSレジ Ver1.0</h1>
+  <div class="header-logo-container">
+    <img src="https://tg-global.asia/_img/sskan_mono_receipt.png" alt="店舗ロゴ">
+  </div>
+
+  <button id="btnLoad">商品一覧表示</button>
+
+  <table id="product-list" class="hidden">
+    <thead>
+      <tr>
+        <th>選択</th>
+        <th>商品ID</th>
+        <th>商品名</th>
+        <th>税込価格</th>
+        <th>軽</th>
+        <th>数量</th>
+        <th>金額</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div id="nav1" class="navigation-area hidden">
+    <button id="btnBack1">戻る</button>
+    <button id="btnNext1">次へ</button>
+  </div>
+
+  <table id="selected-product-list" class="hidden">
+    <thead>
+      <tr>
+        <th>選択</th>
+        <th>商品ID</th>
+        <th>商品名</th>
+        <th>税込価格</th>
+        <th>軽</th>
+        <th>数量</th>
+        <th>金額</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <div id="nav2" class="navigation-area hidden">
+    <button id="btnBack2">戻る</button>
+    <button id="btnShowTotal">合計金額を表示</button>
+  </div>
+
+  <div id="total-section" class="hidden">
+    <div id="total">合計金額: 0円</div>
+    <div class="navigation-area">
+      <button id="btnBack3">戻る</button>
+      <button id="btnNext3">次へ</button>
+    </div>
+  </div>
+
+  <div id="payment-section" class="hidden section">
+    <label for="payment">お預かり金額:</label>
+    <input type="number" id="payment" min="0" value="0">
+    <button id="btnCalcChange">お釣り表示</button>
+    <div id="change" class="hidden" style="font-size:1.5em; margin-top:10px;">お釣り: 0円</div>
+    <div class="navigation-area">
+      <button id="btnBack4">戻る</button>
+      <button id="btnNext4">次へ</button>
+    </div>
+  </div>
+
+  <div id="receipt-section" class="hidden section">
+    <h2>領収書情報</h2>
+    <div style="margin-bottom:10px;">
+      <p>担当者:</p>
+      <label><input type="radio" name="staff" value="安彦" checked>安彦</label>
+      <label><input type="radio" name="staff" value="梨木">梨木</label>
+      <label><input type="radio" name="staff" value="辻">辻</label>
+      <label><input type="radio" name="staff" value="その他">その他</label>
+    </div>
+    <div>
+      <p>ユーザー属性(複数選択可):</p>
+      <label><input type="checkbox" name="userAttr" value="単身">単身</label>
+      <label><input type="checkbox" name="userAttr" value="家族">家族</label>
+      <label><input type="checkbox" name="userAttr" value="男">男</label>
+      <label><input type="checkbox" name="userAttr" value="女">女</label>
+      <label><input type="checkbox" name="userAttr" value="10">10</label>
+      <label><input type="checkbox" name="userAttr" value="20-40">20-40</label>
+      <label><input type="checkbox" name="userAttr" value="40-60">40-60</label>
+      <label><input type="checkbox" name="userAttr" value="60-80">60-80</label>
+      <label><input type="checkbox" name="userAttr" value="torihikisaki">取引先</label>
+    </div>
+    <div class="navigation-area">
+      <button id="btnBack5">戻る</button>
+      <button id="btnNext5">次へ</button>
+    </div>
+  </div>
+
+  <div id="memo-section" class="hidden section">
+    <h2>メモ入力</h2>
+    <textarea id="memo" rows="4" cols="50"></textarea><br>
+    <div class="navigation-area">
+      <button id="btnSendMemo">送信</button>
+      <button id="btnBack6">戻る</button>
+    </div>
+    <div class="navigation-area hidden" id="restart-area" style="margin-top:20px; text-align:center;">
+      <button id="btnRestart" style="background:#ffa500;">はじめから</button>
+    </div>
+  </div>
+
+  <script>
+    let products = [];
+    let selectedProducts = [];
+    const endpoint = 'https://script.google.com/macros/s/AKfycbwAkIC23LVPVCK9QhHXb12I8Nn0fUa4JarQBqUiosR_gB4Q1QDlJOXr-xsEa5KNbzHZJQ/exec';
+
+    document.getElementById('btnLoad').addEventListener('click', function() {
+      fetch(`${endpoint}?mode=products`)
+        .then(response => response.json())
+        .then(json => {
+          console.log('Fetched products:', json); // ここでjsonを確認
+          if (json.status === 'ok') {
+            products = json.data;
+            renderProductList(products, true, false, 'product-list');
+            document.getElementById('product-list').classList.remove('hidden');
+            document.getElementById('nav1').classList.remove('hidden');
+
+            if (products.length === 0) {
+              alert('商品がありません。シートに商品データを追加してください。');
+            }
+          } else {
+            alert('データ取得に失敗しました: ' + json.message);
+          }
+        })
+        .catch(err => {
+          console.error('Fetch error:', err);
+          alert('エラーが発生しました: ' + err.message);
+        });
+    });
+
+    function formatNumber(num) {
+      return Number(num).toLocaleString('ja-JP');
+    }
+
+    // showCheckboxがfalseでも最初の列(選択列)は空のセルを入れて列数を統一
+function renderProductList(data, showCheckbox, defaultQtyOne, tableId) {
+  const tbody = document.querySelector(`#${tableId} tbody`);
+  tbody.innerHTML = '';
+
+  if (data.length === 0) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 7; 
+    td.textContent = '商品がありません';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+
+  data.forEach((item) => {
+    const tr = document.createElement('tr');
+
+    // 選択列
+    const tdCheck = document.createElement('td');
+    if (showCheckbox) {
+      const chk = document.createElement('input');
+      chk.type = 'checkbox';
+      tdCheck.appendChild(chk);
+    }
+    tr.appendChild(tdCheck);
+
+    // 商品ID(1)
+    const tdId = document.createElement('td');
+    tdId.textContent = item.productId;
+    tr.appendChild(tdId);
+
+    // 商品名(2)
+    const tdName = document.createElement('td');
+    tdName.textContent = item.productName;
+    tr.appendChild(tdName);
+
+    // 税込価格(3)
+    const tdPrice = document.createElement('td');
+    const priceNum = Number(item.productPriceWithTax) || 0;
+    tdPrice.textContent = formatNumber(priceNum);
+    tr.appendChild(tdPrice);
+
+    // 軽(4)
+    const tdReduced = document.createElement('td');
+    const reducedMark = item.reducedTax ? "●" : "";
+    tdReduced.textContent = reducedMark;
+    tr.appendChild(tdReduced);
+
+    // 数量(5)
+    const tdQty = document.createElement('td');
+    const inputQty = document.createElement('input');
+    inputQty.type = 'number';
+    inputQty.min = '0';
+    inputQty.value = defaultQtyOne ? '1' : '0';
+    tdQty.appendChild(inputQty);
+    tr.appendChild(tdQty);
+
+    // 金額(6)
+    const tdAmount = document.createElement('td');
+    tdAmount.textContent = '0';
+    tr.appendChild(tdAmount);
+
+    tr.setAttribute('data-reduced-tax', item.reducedTax ? 'true' : 'false');
+    tbody.appendChild(tr);
+  });
+}
+
+function getSelectedProducts() {
+  const rows = document.querySelectorAll('#product-list tbody tr');
+  const selected = [];
+  rows.forEach((tr) => {
+    const checkbox = tr.cells[0].querySelector('input[type="checkbox"]');
+    if (checkbox && checkbox.checked) {
+      const productId = tr.cells[1].textContent;      
+      const productName = tr.cells[2].textContent;    
+      const priceStr = tr.cells[3].textContent.replace(/,/g,''); 
+      const productPriceWithTax = parseFloat(priceStr);
+      const reducedTax = (tr.getAttribute('data-reduced-tax') === 'true');
+
+      selected.push({
+        productId: productId,
+        productName: productName,
+        productPriceWithTax: productPriceWithTax,
+        qty: 0,
+        amount: 0,
+        reducedTax: reducedTax
+      });
+    }
+  });
+  return selected;
+}
+
+    document.getElementById('btnNext1').addEventListener('click', function() {
+      selectedProducts = getSelectedProducts();
+      if (selectedProducts.length === 0) {
+        alert('商品が選択されていません');
+        return;
+      }
+      renderProductList(selectedProducts, false, true, 'selected-product-list');
+      document.getElementById('selected-product-list').classList.remove('hidden');
+      document.getElementById('nav2').classList.remove('hidden');
+    });
+
+    document.getElementById('btnShowTotal').addEventListener('click', function() {
+      calculateTotal();
+      document.getElementById('total-section').classList.remove('hidden');
+    });
+
+function calculateTotal() {
+  const rows = document.querySelectorAll('#selected-product-list tbody tr');
+  let total = 0;
+  let chosenProducts = [];
+
+  rows.forEach(tr => {
+    const productId = tr.cells[1].textContent;
+    const productName = tr.cells[2].textContent;
+    const priceStr = tr.cells[3].textContent.replace(/,/g,'');
+    const productPriceWithTax = parseFloat(priceStr);
+    const reducedTax = (tr.getAttribute('data-reduced-tax') === 'true');
+
+    const qtyInput = tr.cells[5].querySelector('input[type="number"]');
+    const qty = parseInt(qtyInput.value, 10) || 0;
+    const amount = productPriceWithTax * qty;
+    tr.cells[6].textContent = amount.toLocaleString();
+
+    total += amount;
+    chosenProducts.push({
+      productId: productId,
+      productName: productName,
+      productPriceWithTax: productPriceWithTax,
+      qty: qty,
+      amount: amount,
+      reducedTax: reducedTax
+    });
+  });
+
+  document.getElementById('total').textContent = `合計金額: ${total.toLocaleString()}円`;
+  localStorage.setItem('transactionData', JSON.stringify({
+    products: chosenProducts,
+    total: total
+  }));
+}
+
+    document.getElementById('btnNext3').addEventListener('click', function() {
+      document.getElementById('payment-section').classList.remove('hidden');
+      const transactionData = JSON.parse(localStorage.getItem('transactionData') || '{}');
+      const total = transactionData.total || 0;
+      const paymentInput = document.getElementById('payment');
+      paymentInput.value = total; 
+    });
+
+    document.getElementById('btnCalcChange').addEventListener('click', function() {
+      const totalText = document.getElementById('total').textContent;
+      const totalValue = parseFloat(totalText.replace(/[^\d\.]/g,''));
+      const payment = parseInt(document.getElementById('payment').value,10) || 0;
+      const change = payment - totalValue;
+      document.getElementById('change').textContent = `お釣り: ${formatNumber(change)}円`;
+      document.getElementById('change').classList.remove('hidden');
+
+      const transactionData = JSON.parse(localStorage.getItem('transactionData') || '{}');
+      transactionData.payment = payment;
+      transactionData.change = change;
+      localStorage.setItem('transactionData', JSON.stringify(transactionData));
+    });
+
+    document.getElementById('btnNext4').addEventListener('click', function() {
+      document.getElementById('receipt-section').classList.remove('hidden');
+    });
+
+    document.getElementById('btnNext5').addEventListener('click', function() {
+      const staff = document.querySelector('input[name="staff"]:checked').value;
+      const userAttrs = Array.from(document.querySelectorAll('input[name="userAttr"]:checked')).map(chk => chk.value);
+
+      const transactionData = JSON.parse(localStorage.getItem('transactionData') || '{}');
+      transactionData.staff = staff;
+      transactionData.userAttrs = userAttrs;
+      localStorage.setItem('transactionData', JSON.stringify(transactionData));
+
+      window.open(`${endpoint}?mode=receipt`, '_blank');
+
+      document.getElementById('memo-section').classList.remove('hidden');
+    });
+
+    document.getElementById('btnSendMemo').addEventListener('click', function(){
+      const memo = document.getElementById('memo').value;
+      const transactionData = JSON.parse(localStorage.getItem('transactionData') || '{}');
+      transactionData.memo = memo;
+      localStorage.setItem('transactionData', JSON.stringify(transactionData));
+
+      const now = new Date();
+      const isoString = now.toISOString();
+      const products = transactionData.products || [];
+      const total = transactionData.total || 0;
+      const paymentMethod = transactionData.paymentMethod || "";
+      const operatorId = transactionData.operatorId || "";
+      const userAttrs = (transactionData.userAttrs || []).join(', ');
+
+      const records = products.map(p => ({
+        dateTime: isoString,
+        productId: p.productId,
+        productName: p.productName,
+        reducedTax: p.reducedTax, 
+        qty: p.qty,
+        unitPrice: p.price,
+        subtotal: p.amount,
+        tax: 0,
+        total: total,
+        paymentMethod: paymentMethod,
+        operatorId: operatorId,
+        userAttrs: userAttrs
+      }));
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          if (response && response.status === 'ok') {
+            alert('メモと取引情報を送信しました。');
+            document.getElementById('restart-area').classList.remove('hidden');
+          } else {
+            alert('書き込みエラー:' + response.message);
+          }
+        })
+        .withFailureHandler(function(err) {
+          console.error('Write error:', err);
+          alert('送信中にエラーが発生しました: ' + err);
+        })
+        .writeToSheet(records);
+    });
+
+    document.getElementById('btnRestart').addEventListener('click', function(){
+      window.open('https://script.google.com/a/macros/shunnhokkaido.jp/s/AKfycbwAkIC23LVPVCK9QhHXb12I8Nn0fUa4JarQBqUiosR_gB4Q1QDlJOXr-xsEa5KNbzHZJQ/exec', '_blank');
+    });
+
+    document.getElementById('btnBack1').addEventListener('click', function() {
+      location.reload();
+    });
+    document.getElementById('btnBack2').addEventListener('click', function() {
+      document.getElementById('selected-product-list').classList.add('hidden');
+      document.getElementById('nav2').classList.add('hidden');
+    });
+    document.getElementById('btnBack3').addEventListener('click', function() {
+      document.getElementById('total-section').classList.add('hidden');
+    });
+    document.getElementById('btnBack4').addEventListener('click', function() {
+      document.getElementById('payment-section').classList.add('hidden');
+    });
+    document.getElementById('btnBack5').addEventListener('click', function() {
+      document.getElementById('receipt-section').classList.add('hidden');
+    });
+    document.getElementById('btnBack6').addEventListener('click', function() {
+      document.getElementById('memo-section').classList.add('hidden');
+    });
+  </script>
+</body>
+
+</html>
